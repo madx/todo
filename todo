@@ -1,0 +1,177 @@
+#!/usr/bin/env ruby
+require 'yaml'
+require 'stringio'
+
+module TodoList
+  class App
+    DEFAULT = "misc"
+    USAGE = <<-END
+todo [-\e[4mcategory\e[0m] \e[4maction\e[0m [\e[4margs...\e[0m]
+    END
+
+    def initialize(file)
+      @file = file
+      @data = YAML.load_file(file)
+      raise "todolist file malformed" unless @data.is_a?(Hash)
+      @category = nil
+    end
+
+    def run(args)
+      if args.empty?
+        show_all
+      else
+        if args.first[0].chr.eql?('-')
+          @category = args.shift[1..-1]
+        end
+        if args.size.zero? then show; exit end
+        @category ||= DEFAULT
+        command = args.shift.to_sym
+        if respond_to?(command)
+          send(command, *args)
+        else
+          raise "no such command #{command}"
+        end
+      end
+    end
+
+    def show_all(*args)
+      @data.keys.sort.each do |category|
+        puts "#{category}:"
+        details = capture { show category }
+        details.each_line do |todo|
+          puts "  #{todo}"
+        end
+      end
+    end
+
+    def show(*args)
+      @category = args.first unless args.empty?
+      raise "no such category #{@category}" unless valid_category?
+      @data[@category].each_with_index do |todo, i|
+        puts "#{i}) #{todo}"
+      end
+    end
+
+    def add(*args)
+      check_args(:add, args, 1)
+      todo = args.join(' ')
+      (@data[@category] ||= []) << todo
+      save!; show
+    end
+
+    def remove(*args)
+      check_args(:remove, args, 1)
+      ids = args.collect do |a|
+        raise "id out of range" unless a.to_i.between?(0, data.count - 1)
+        a.to_i
+      end
+      ids.each do |id| 
+        @data[@category].delete_at id
+        ids.collect! {|i| i -= 1 }
+      end
+      save!
+      if @data[@category] then show else puts "category #@category clean" end
+    end
+    alias :rm :remove
+    alias :ok :remove
+
+    def up(*args)
+      check_args(:up, args, 1)
+      id  = args.shift.to_i
+      raise "id out of range" unless (0..data.count).to_a.member? id
+      inc = args.size > 1 ? args.shift.to_i : 1
+      if id.zero?
+        raise "item already on top"
+      else
+        while id > 0 && inc > 0
+          @data[@category][id-1], @data[@category][id] = data[id], data[id-1]
+          id -= 1; inc -= 1
+        end
+      end
+      save!; show
+    end
+
+    def down(*args)
+      check_args(:up, args, 1)
+      id  = args.shift.to_i
+      raise "id out of range" unless (0..data.count).to_a.member? id
+      inc = args.size > 1 ? args.shift.to_i : 1
+      if id.eql?(data.count - 1)
+        raise "item already at bottom"
+      else
+        while id < data.count && inc > 0
+          @data[@category][id+1], @data[@category][id] = data[id], data[id+1]
+          id += 1; inc -= 1
+        end
+      end
+      save!; show
+    end
+
+    def exchange(*args)
+      check_args(:exchange, args, 2)
+      first, second = args.shift.to_i, args.shift.to_i
+      unless (0..data.count).to_a.member?(first) ||
+        (0..data.count).to_a.member?(second)
+        raise "id out of range"
+      end
+      @data[@category][first], @data[@category][second] = 
+        data[second], data[first]
+      save!; show
+    end
+    alias :ex :exchange
+
+    def top(*args)
+      puts data.first
+    end
+
+    def categories(*args)
+      puts "Categories:"
+      puts @data.keys.collect {|c| "- #{c}" }.join("\n")
+    end
+    alias :cat :categories
+
+    private
+
+    def data
+      @data[@category]
+    end
+
+    def check_args(command, array, count)
+      if array.size < count
+        raise "#{command} requires at least #{count} args"
+      end
+    end
+
+    def instruct!
+      puts USAGE
+      exit 1
+    end
+
+    def valid_category?
+      @data.keys.member? @category
+    end
+
+    def save!
+      @data.delete_if {|k,v| v.nil? || v.empty? }
+      File.open(@file, 'w+') {|f| f.write YAML.dump(@data) }
+    end
+
+    def capture
+      $stdout = StringIO.new
+      yield
+      output = $stdout.string
+      $stdout = STDOUT
+      output
+    end
+
+  end
+end
+
+todolist = TodoList::App.new(File.expand_path('~/.todolist'))
+
+begin
+  todolist.run(ARGV)
+rescue => e
+  puts e.message
+  exit 1
+end
