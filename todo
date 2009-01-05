@@ -4,7 +4,9 @@ require 'stringio'
 
 module TodoList
   class App
-    DEFAULT = "misc"
+    DEFAULT  = "misc"
+    COMMANDS = %w(show add remove rm ok up down exchange ex top
+                  categories cat help).collect {|x| x.to_sym }
     USAGE = <<-END
 todo [-\e[4mcategory\e[0m] \e[4maction\e[0m [\e[4margs...\e[0m]
     END
@@ -26,7 +28,7 @@ todo [-\e[4mcategory\e[0m] \e[4maction\e[0m [\e[4margs...\e[0m]
         if args.size.zero? then show; exit end
         @category ||= DEFAULT
         command = args.shift.to_sym
-        if respond_to?(command)
+        if COMMANDS.member?(command)
           send(command, *args)
         else
           raise "no such command #{command}"
