@@ -6,7 +6,7 @@ module TodoList
   class App
     DEFAULT  = "misc"
     COMMANDS = %w(show add remove rm ok up down exchange ex top
-                  categories cat help).collect {|x| x.to_sym }
+                  categories cat help change ch).collect {|x| x.to_sym }
     USAGE = <<-END
 todo [-\e[4mcategory\e[0m] \e[4maction\e[0m [\e[4margs...\e[0m]
     END
@@ -122,8 +122,21 @@ todo [-\e[4mcategory\e[0m] \e[4maction\e[0m [\e[4margs...\e[0m]
     end
     alias :ex :exchange
 
+    def change(*args)
+      check_args(:change, args, 2)
+      id, todo = args.shift.to_i, args.join(' ')
+      raise "id out of range" unless id.between?(0, data.count - 1)
+      @data[@category][id] = todo
+      save!; show
+    end
+    alias :ch :change 
+
     def top(*args)
       puts data.first
+    end
+
+    def help(*args)
+      puts USAGE
     end
 
     def categories(*args)
