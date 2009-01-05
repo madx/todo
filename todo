@@ -9,6 +9,23 @@ module TodoList
                   categories cat help change ch).collect {|x| x.to_sym }
     USAGE = <<-END
 todo [-\e[4mcategory\e[0m] \e[4maction\e[0m [\e[4margs...\e[0m]
+
+  This is a simple todolist manager. You can sort your tasks in categories by
+  prepending a dash to the first argument. Whatever is after the dash will be
+  the name of the category. Actions requiring a category will select the
+  default one (misc) if none is provided.
+
+\e[1mACTIONS\e[0m
+
+  show           show all tasks for the active category
+  add            add a task
+  remove         remove a tag by it's number
+  exchange       swap two tasks in the list by their numbers
+  change         change the text for a task
+  categories     show available categories
+  top            show the first task for the active category
+  help           show a brief help message
+
     END
 
     def initialize(file)
