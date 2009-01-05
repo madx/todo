@@ -73,9 +73,12 @@ todo [-\e[4mcategory\e[0m] [\e[4maction\e[0m [\e[4margs...\e[0m]]
 
     def show(*args)
       @category = args.first unless args.empty?
-      raise "no such category #{@category}" unless valid_category?
-      @data[@category].each_with_index do |todo, i|
-        puts "#{i}) #{todo}"
+      if valid_category?
+        @data[@category].each_with_index do |todo, i|
+          puts "#{i}) #{todo}"
+        end
+      else
+        puts "category #@category is empty"
       end
     end
 
@@ -101,6 +104,17 @@ todo [-\e[4mcategory\e[0m] [\e[4maction\e[0m [\e[4margs...\e[0m]]
     end
     alias :rm :remove
     alias :ok :remove
+
+    def move(*args)
+      check_args(:move, args, 2)
+      id, target = args.shift.to_i, args.shift
+      raise "id out of range" unless id.between?(0, data.count - 1)
+      (@data[target] ||= []) << @data[@category][id]
+      capture { remove id }
+      @category = target
+      save!; show
+    end
+    alias :mv :move
 
     def up(*args)
       check_args(:up, args, 1)
@@ -178,7 +192,7 @@ todo [-\e[4mcategory\e[0m] [\e[4maction\e[0m [\e[4margs...\e[0m]]
     private
 
     def data
-      @data[@category]
+      @data[@category] || []
     end
 
     def check_args(command, array, count)
