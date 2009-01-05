@@ -84,7 +84,7 @@ todo [-\e[4mcategory\e[0m] \e[4maction\e[0m [\e[4margs...\e[0m]
         raise "id out of range" unless a.to_i.between?(0, data.count - 1)
         a.to_i
       end
-      ids.each do |id| 
+      ids.each do |id|
         @data[@category].delete_at id
         ids.collect! {|i| i -= 1 }
       end
@@ -133,7 +133,7 @@ todo [-\e[4mcategory\e[0m] \e[4maction\e[0m [\e[4margs...\e[0m]
         (0..data.count).to_a.member?(second)
         raise "id out of range"
       end
-      @data[@category][first], @data[@category][second] = 
+      @data[@category][first], @data[@category][second] =
         data[second], data[first]
       save!; show
     end
@@ -146,7 +146,7 @@ todo [-\e[4mcategory\e[0m] \e[4maction\e[0m [\e[4margs...\e[0m]
       @data[@category][id] = todo
       save!; show
     end
-    alias :ch :change 
+    alias :ch :change
 
     def top(*args)
       puts data.first
