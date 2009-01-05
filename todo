@@ -4,29 +4,37 @@ require 'stringio'
 
 module TodoList
   class App
-    DEFAULT  = "misc"
-    COMMANDS = %w(show add remove rm ok up down exchange ex top
-                  categories cat help change ch).collect {|x| x.to_sym }
     USAGE = <<-END
-todo [-\e[4mcategory\e[0m] \e[4maction\e[0m [\e[4margs...\e[0m]
+todo [-\e[4mcategory\e[0m] [\e[4maction\e[0m [\e[4margs...\e[0m]]
 
   This is a simple todolist manager. You can sort your tasks in categories by
   prepending a dash to the first argument. Whatever is after the dash will be
   the name of the category. Actions requiring a category will select the
-  default one (misc) if none is provided.
+  default one (misc) if none is provided. Categories are automatically created
+  and removed, so don't worry about it.
+  If no action is given, show will be executed as a default.
 
 \e[1mACTIONS\e[0m
 
   show           show all tasks for the active category
   add            add a task
-  remove         remove a tag by it's number
-  exchange       swap two tasks in the list by their numbers
-  change         change the text for a task
-  categories     show available categories
+  remove         remove a tag by it's number (aliases: rm, ok)
+  exchange       swap two tasks in the list by their numbers (alias: ex)
+  move           change the category of a task (alias: mv)
+  change         change the text for a task (alias: ch)
+  categories     show available categories (alias: cat)
   top            show the first task for the active category
   help           show a brief help message
 
+\e[1mOPTIONS\e[0m
+
+  help:
+    \e[1m--long\e[0m: show this detailed help
     END
+    DEFAULT  = "misc"
+    TAG_RE   = /\A([a-zA-Z_-]+):/
+    COMMANDS = %w(show add remove rm ok up down exchange ex top move mv
+                  categories cat help change ch).collect {|x| x.to_sym }
 
     def initialize(file)
       @file = file
@@ -153,7 +161,12 @@ todo [-\e[4mcategory\e[0m] \e[4maction\e[0m [\e[4margs...\e[0m]
     end
 
     def help(*args)
-      puts USAGE
+      if args.member?('--long')
+        puts USAGE
+      else
+        puts USAGE.split($/).first
+        puts "use todo help --long for detailed help"
+      end
     end
 
     def categories(*args)
@@ -172,11 +185,6 @@ todo [-\e[4mcategory\e[0m] \e[4maction\e[0m [\e[4margs...\e[0m]
       if array.size < count
         raise "#{command} requires at least #{count} args"
       end
-    end
-
-    def instruct!
-      puts USAGE
-      exit 1
     end
 
     def valid_category?
