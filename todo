@@ -23,6 +23,7 @@ todo [-\e[4mcategory\e[0m] [\e[4maction\e[0m [\e[4margs...\e[0m]]
   move           change the category of a task (alias: mv)
   change         change the text for a task (alias: ch)
   categories     show available categories (alias: cat)
+  clear          remove all entries from a category
   top            show the first task for the active category
   help           show a brief help message
 
@@ -34,7 +35,7 @@ todo [-\e[4mcategory\e[0m] [\e[4maction\e[0m [\e[4margs...\e[0m]]
     DEFAULT  = "misc"
     TAG_RE   = /\A([a-zA-Z_-]+):/
     COMMANDS = %w(show add remove rm ok up down exchange ex top move mv
-                  categories cat help change ch).collect {|x| x.to_sym }
+                  categories cat help change ch clear).collect {|x| x.to_sym }
 
     def initialize(file)
       @file = file
@@ -100,10 +101,16 @@ todo [-\e[4mcategory\e[0m] [\e[4maction\e[0m [\e[4margs...\e[0m]]
         ids.collect! {|i| i -= 1 }
       end
       save!
-      if @data[@category] then show else puts "category #@category clean" end
+      if @data[@category] then show else puts "category #@category cleaned" end
     end
     alias :rm :remove
     alias :ok :remove
+
+    def clear(*args)
+      @data.delete(@category)
+      save!
+      puts "category #@category cleaned" 
+    end
 
     def move(*args)
       check_args(:move, args, 2)
